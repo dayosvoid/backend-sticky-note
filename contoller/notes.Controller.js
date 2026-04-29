@@ -1,9 +1,9 @@
 const NOTES = require('../model/notes.Schema')
 
 const handleCreateNote = async(req,res)=>{
-    const {note,topic} = req.body
+    const {note,topic,category} = req.body
     try {
-        if(!note || !topic){
+        if(!note || !topic || !category){
             return res.status(400).json({
                 sucess:false,
                 message:"Missing noteId or newNote content"
@@ -17,7 +17,7 @@ const handleCreateNote = async(req,res)=>{
             })
         }
 
-        const saveNote = await NOTES.create({ note: note, topic:topic.toUpperCase() })
+        const saveNote = await NOTES.create({ note: note, topic:topic.toUpperCase(), category:category })
 
         if (req.io) {
             req.io.emit('note_created', saveNote);

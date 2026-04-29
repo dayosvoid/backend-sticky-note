@@ -9,6 +9,12 @@ const notesSchema = new mongoose.Schema({
         type:String,
         required:true,
         maxLength:10
+    },
+    category:{
+        type:String,
+        required:true,
+        enum:['Personal', 'Business', 'Other'],
+        default:'personal'
     }
     
 },{timestamps:true})

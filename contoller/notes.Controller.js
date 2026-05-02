@@ -1,14 +1,28 @@
 const NOTES = require('../model/notes.Schema')
+const cloudinary = require('cloudinary').v2
 
 const handleCreateNote = async(req,res)=>{
-    const {note,topic,category} = req.body
+    const {note,topic,category,image} = req.body
+    let imageUrl = ""
     try {
+
+        if(image){
+            const uploaded = await cloudinary.uploader.upload(image,{
+                allowed_format: ["jpg", "jpeg", "png", "webp","svg"],
+                folder: "sticky-notes"
+        })
+            imageUrl = uploaded.secure_url
+            console.log("Cloudinary URL:", uploaded.secure_url)
+        }
+
+
         if(!note || !topic || !category){
             return res.status(400).json({
                 sucess:false,
                 message:"Missing noteId or newNote content"
             })
         }
+
 
         if(topic.length > 10 || topic.length < 3){
             return res.status(400).json({
@@ -17,7 +31,7 @@ const handleCreateNote = async(req,res)=>{
             })
         }
 
-        const saveNote = await NOTES.create({ note: note, topic:topic.toUpperCase(), category:category })
+        const saveNote = await NOTES.create({ note: note, topic:topic.toUpperCase(), category:category, image:imageUrl })
 
         if (req.io) {
             req.io.emit('note_created', saveNote);

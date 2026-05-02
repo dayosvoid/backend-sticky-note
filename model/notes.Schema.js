@@ -8,13 +8,17 @@ const notesSchema = new mongoose.Schema({
     topic:{
         type:String,
         required:true,
-        maxLength:10
+        maxLength:15
     },
     category:{
         type:String,
         required:true,
         enum:['Personal', 'Business', 'Other'],
-        default:'personal'
+        default:'Personal'
+    },
+    image:{
+        type:String,
+        default:""
     }
     
 },{timestamps:true})

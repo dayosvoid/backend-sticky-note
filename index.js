@@ -31,7 +31,7 @@ app.use("/api/notes/", notesRoute)
 // socket.io config
 const server = require('http').createServer(app)
 const io = require('socket.io')(server,
-   {cors: { origin: CLIENT_API_URL ,
+   {cors: { origin: process.env.CLIENT_API_URL ,
     methods:['GET','POST']
    }})
 

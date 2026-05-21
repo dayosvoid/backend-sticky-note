@@ -1,4 +1,3 @@
-
 const express = require('express')
 const app = express()
 const dotenv = require('dotenv')
@@ -6,7 +5,10 @@ dotenv.config()
 const mongoose = require('mongoose')
 const cors = require('cors')
 const notesRoute = require('./routes/notes.routes')
+const userRoute = require("./routes/user.route")
+const errorhandling =  require("./middleware/error.Middleware")
 require('./config/cloudinary.config')
+
 
 
 const PORT = process.env.PORT || 6000
@@ -17,6 +19,13 @@ const PORT = process.env.PORT || 6000
 //   api_secret: process.env.CLOUDINARY_API_SECRET,
 //   secure: true,
 // });
+// socket.io config
+const server = require('http').createServer(app)
+const io = require('socket.io')(server,
+   {cors: { origin: process.env.CLIENT_API_URL ,
+    methods:['GET','POST']
+   }})
+
 
 
 app.use(cors())
@@ -26,14 +35,9 @@ app.use((req, res, next) => {
     req.io = io
     next()
 })
-app.use("/api/notes/", notesRoute)
+app.use("/api/notes", notesRoute)
+app.use("/api/users", userRoute)
 
-// socket.io config
-const server = require('http').createServer(app)
-const io = require('socket.io')(server,
-   {cors: { origin: process.env.CLIENT_API_URL ,
-    methods:['GET','POST']
-   }})
 
 io.on('connection', socket => {
     console.log('socket connected:', socket.id)
@@ -42,6 +46,9 @@ io.on('connection', socket => {
         console.log('socket disconnected:', socket.id)
     })
 })
+
+
+app.use(errorhandling)
 
 const startServer = async()=>{
     try {

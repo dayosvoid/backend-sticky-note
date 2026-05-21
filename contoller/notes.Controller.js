@@ -1,115 +1,98 @@
-const NOTES = require('../model/notes.Schema')
-const cloudinary = require('cloudinary').v2
+const NOTES = require('../model/notes.Schema');
+const customError = require("../utils/customError");
+const cloudinary = require('cloudinary').v2;
 
-const handleCreateNote = async(req,res)=>{
-    const {note,topic,category,image} = req.body
-    let imageUrl = ""
+const handleCreateNote = async (req, res, next) => {
+    const { note, topic, category, image } = req.body;
+    let imageUrl = "";
+
     try {
+        // Fix 1: Validate input fields first before wasting Cloudinary bandwidth!
+        if (!note || !topic || !category) {
+            return next(new customError("Missing required note content, topic, or category", 400));
+        }
 
-        if(image){
-            const uploaded = await cloudinary.uploader.upload(image,{
-                allowed_format: ["jpg", "jpeg", "png", "webp","svg"],
+        if (topic.length > 10 || topic.length < 3) {
+            return next(new customError("Topic length must be between 3 and 10 characters", 400));
+        }
+
+        if (image) {
+            const uploaded = await cloudinary.uploader.upload(image, {
+                allowed_formats: ["jpg", "jpeg", "png", "webp", "svg"], // Fix: pluralized key name
                 folder: "sticky-notes"
-        })
-            imageUrl = uploaded.secure_url
-            console.log("Cloudinary URL:", uploaded.secure_url)
+            });
+            imageUrl = uploaded.secure_url;
+            console.log("Cloudinary URL:", uploaded.secure_url);
         }
 
-
-        if(!note || !topic || !category){
-            return res.status(400).json({
-                sucess:false,
-                message:"Missing noteId or newNote content"
-            })
-        }
-
-
-        if(topic.length > 10 || topic.length < 3){
-            return res.status(400).json({
-                sucess:false,
-                message:"hit max character limit"
-            })
-        }
-
-        const saveNote = await NOTES.create({ note: note, topic:topic.toUpperCase(), category:category, image:imageUrl })
+        const saveNote = await NOTES.create({ 
+            note: note, 
+            topic: topic.toUpperCase(), 
+            category: category, 
+            image: imageUrl 
+        });
 
         if (req.io) {
             req.io.emit('note_created', saveNote);
         }
 
         return res.status(200).json({
-            success:true,
-            message:"Note created successfully",
-            data:saveNote
-        })
+            success: true,
+            message: "Note created successfully",
+            data: saveNote
+        });
     } catch (error) {
-        console.log(error)
-        res.status(500).json({
-            success:false,
-            message:error.message
-        })
+        console.error(error);
+        return next(error); 
     }
-}
+};
 
-const handleGetAllNotes = async(req,res) =>{
+const handleGetAllNotes = async (req, res, next) => {
     try {
-        const allNotes = await NOTES.find()
+        const allNotes = await NOTES.find();
 
-        if(allNotes.length === 0){
-            return res.status(404).json({
-               success:true,
-               message:"No available notes yet",
-               data:[] 
-            })
+     
+        if (allNotes.length === 0) {
+            return next(new customError("No available notes found", 200));
         }
 
         return res.status(200).json({
-            success:true,
-            message:"All available notes",
-            data:allNotes
-        })
+            success: true,
+            message: "All available notes",
+            data: allNotes
+        });
     } catch (error) {
-        console.log(error)
-        res.status(500).json({
-            success:false,
-            message:error.message
-        })
+        console.error(error);
+        return next(error);
     }
-}
+};
 
-const handleNoteUpdate = async(req,res)=>{
-    const {noteId, newNote} = req.body
+const handleNoteUpdate = async (req, res, next) => { 
+    const { noteId, newNote } = req.body;
     try {
-        if(!noteId || !newNote){
-            return res.status(400).json({
-               success:false,
-               message:"Provided the required notes :id" 
-            })
+        if (!noteId || !newNote) {
+            return next(new customError("Please provide noteId and newNote content to execute updates", 400));
         }
 
-        const updateNote = await NOTES.findByIdAndUpdate(noteId,
-             {note:newNote},
-            {new:true})
+        const updateNote = await NOTES.findByIdAndUpdate(
+            noteId,
+            { note: newNote },
+            { new: true }
+        );
 
-            if(!updateNote){
-                return res.status(404).json({
-                    success:false,
-                    message:"Notes not found"
-                })
-            }
+        if (!updateNote) {
+            return next(new customError("Target note record not found", 404));
+        }
 
-            return res.status(200).json({
-                success:true,
-                message:"Note has been updated successfully",
-                updateNote,
-            })
+        return res.status(200).json({
+            success: true,
+            message: "Note has been updated successfully",
+            data: updateNote, // Wrapped cleanly inside standard data property wrapper
+        });
     } catch (error) {
-        console.log(error.message)
-        res.status(500).json({
-            success:false,
-            message:error.message
-        })
+        console.error(error.message);
+        return next(error);
     }
-}
+};
 
-module.exports = {handleCreateNote,handleGetAllNotes, handleNoteUpdate}
+module.exports = { handleCreateNote, handleGetAllNotes, handleNoteUpdate };

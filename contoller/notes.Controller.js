@@ -4,15 +4,16 @@ const cloudinary = require('cloudinary').v2;
 
 const handleCreateNote = async (req, res, next) => {
     const { note, topic, category, image } = req.body;
+    const userId = req.user._id
     let imageUrl = "";
 
     try {
         // Fix 1: Validate input fields first before wasting Cloudinary bandwidth!
-        if (!note || !topic || !category) {
+        if (!note || !topic || !category || !userId) {
             return next(new customError("Missing required note content, topic, or category", 400));
         }
 
-        if (topic.length > 10 || topic.length < 3) {
+        if (topic.length > 15 || topic.length < 3) {
             return next(new customError("Topic length must be between 3 and 10 characters", 400));
         }
 
@@ -26,6 +27,7 @@ const handleCreateNote = async (req, res, next) => {
         }
 
         const saveNote = await NOTES.create({ 
+            user:userId,
             note: note, 
             topic: topic.toUpperCase(), 
             category: category, 
@@ -48,12 +50,20 @@ const handleCreateNote = async (req, res, next) => {
 };
 
 const handleGetAllNotes = async (req, res, next) => {
+    const userId = req.user._id
+    if(!userId){
+        return next(new customError("user not found",404))
+    }
     try {
-        const allNotes = await NOTES.find();
+        const allNotes = await NOTES.find({ user: userId })
 
      
-        if (allNotes.length === 0) {
-            return next(new customError("No available notes found", 200));
+        if (!allNotes || allNotes.length === 0) {
+            return res.status(200).json({
+                success: true,
+                message: "No available notes found",
+                data: []
+            });
         }
 
         return res.status(200).json({

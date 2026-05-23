@@ -41,7 +41,7 @@ userSchema.methods.comparedPassword = async function (userPassword){
     }
 }
 
-userSchema.methods.generateJwtToken = async function (){
+userSchema.methods.generateJwtToken = function (){
     const token = jwt.sign({userId : this._id}, process.env.JWT_SIGNATURE, {expiresIn:process.env.JWT_LIFESPAN})
     return token
 }

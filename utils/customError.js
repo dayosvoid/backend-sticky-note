@@ -1,5 +1,5 @@
 class customError extends Error{
-    constructor(message, statucode){
+    constructor(message, statuscode){
         super(message);
         this.statuscode = statuscode;
         this.status = this.statuscode && this.statuscode >= 400 && this.statuscode < 500 ? this.status = "fail" : "error";

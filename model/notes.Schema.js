@@ -14,7 +14,7 @@ const notesSchema = new mongoose.Schema(
     topic: {
       type: String,
       required: true,
-      maxLength: 15,
+      maxLength: 50,
     },
     category: {
       type: String,

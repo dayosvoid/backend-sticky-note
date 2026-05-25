@@ -66,17 +66,26 @@ const handleGetAllNotes = async (req, res, next) => {
     if (!userId) {
       return next(new customError("user not found", 404));
     }
-
+    const search = req.query.search || "";
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 6;
     const skip = (page - 1) * limit;
 
-    const notes = NOTES.find({ user: userId })
+    const query = { user: userId };
+    if (search) {
+      query.$or = [
+        { topic: { $regex: search, $options: "i" } },
+        { note: { $regex: search, $options: "i" } },
+        { category: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const notes = NOTES.find(query)
       .sort({ updatedAt: -1 })
       .skip(skip)
       .limit(limit);
 
-    const count = NOTES.countDocuments({ user: userId });
+    const count = NOTES.countDocuments(query);
 
     const [allNotes, totalNotes] = await Promise.all([notes, count]);
 
@@ -156,7 +165,6 @@ const handleNoteUpdate = async (req, res, next) => {
 
 const handleDelete = async (req, res, next) => {
   try {
-    
     const userId = req.user?._id;
     if (!userId) {
       return next(new customError("User not found", 404));
@@ -169,8 +177,11 @@ const handleDelete = async (req, res, next) => {
 
     // ✨ OPTIMIZED: Find and delete in a single database round-trip
     // This looks for a note matching the ID AND belonging to the logged-in user
-    const deletedNote = await NOTES.findOneAndDelete({ _id: noteId, user: userId });
-    
+    const deletedNote = await NOTES.findOneAndDelete({
+      _id: noteId,
+      user: userId,
+    });
+
     // If no note matches both criteria, it either doesn't exist or doesn't belong to them
     if (!deletedNote) {
       return next(new customError("Note not found or unauthorized", 404));
@@ -192,4 +203,9 @@ const handleDelete = async (req, res, next) => {
   }
 };
 
-module.exports = {handleDelete, handleCreateNote, handleGetAllNotes, handleNoteUpdate };
+module.exports = {
+  handleDelete,
+  handleCreateNote,
+  handleGetAllNotes,
+  handleNoteUpdate,
+};
